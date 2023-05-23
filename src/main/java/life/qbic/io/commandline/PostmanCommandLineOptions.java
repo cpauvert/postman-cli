@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 import life.qbic.App;
 import life.qbic.io.parser.IdentifierParser;
 import life.qbic.model.download.Authentication;
@@ -75,7 +76,7 @@ public class PostmanCommandLineOptions {
             conservePath,
             authentication.getSessionToken(),
             outputPath);
-    ids = verifyProvidedIdentifiers();
+    ids = getIdentifiers();
     DownloadResponse downloadResponse = qbicDataDownloader.downloadForIds(ids, suffixes);
     LOG.info("Done");
     if (downloadResponse.containsFailure()) {
@@ -102,7 +103,7 @@ public class PostmanCommandLineOptions {
     QbicDataDisplay qbicDataDisplay = new QbicDataDisplay(as_url,
         dss_urls,
         authentication.getSessionToken(), withChecksum);
-    ids = verifyProvidedIdentifiers();
+    ids = getIdentifiers();
     qbicDataDisplay.getInformation(ids, suffixes);
   }
 
@@ -164,19 +165,33 @@ public class PostmanCommandLineOptions {
    * @return sample identifiers
    * @throws IOException if no ids or command line argument ids & file were provided
    */
-  private List<String> verifyProvidedIdentifiers() throws IOException {
+  private List<String> getIdentifiers() throws IOException {
+    requireIds();
+    requireIdsProvidedOnlyOnce();
+    if (manifestFileProvided()){
+      ids = IdentifierParser.readProvidedIdentifiers(filePath.toFile());
+    }
+    return ids.stream().distinct().collect(Collectors.toList());
+  }
+
+  private boolean manifestFileProvided() {
+    return nonNull(filePath);
+  }
+
+  private void requireIdsProvidedOnlyOnce() {
+    if (nonNull(ids) && manifestFileProvided()) {
+      System.err.println(
+          "Arguments --identifier and --file are mutually exclusive, please provide only one.");
+      System.exit(1);
+    }
+  }
+
+  private void requireIds() {
     if ((isNull(ids) || ids.isEmpty()) && isNull(filePath)) {
       System.err.println(
           "You have to provide one ID as command line argument or a file containing IDs.");
       System.exit(1);
-    } else if (nonNull(ids) && nonNull(filePath)) {
-      System.err.println(
-          "Arguments --identifier and --file are mutually exclusive, please provide only one.");
-      System.exit(1);
-    } else if (nonNull(filePath)){
-      ids = IdentifierParser.readProvidedIdentifiers(filePath.toFile());
     }
-    return ids;
   }
 
 }
