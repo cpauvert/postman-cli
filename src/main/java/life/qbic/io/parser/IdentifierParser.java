@@ -18,7 +18,7 @@ public class IdentifierParser {
     List<String> identifiers = new ArrayList<>();
     Scanner scanner = new Scanner(file);
     while (scanner.hasNext()) {
-      identifiers.add(scanner.nextLine());
+      identifiers.add(scanner.nextLine().trim());
     }
     return identifiers;
   }
